@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Genotype-Conditioned Neural Cellular Automata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ── RESET ──────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── TOKENS ─────────────────────────────── */
+:root {
+  --serif: 'Source Serif 4', Georgia, serif;
+  --sans:  'Inter', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', 'Courier New', monospace;
+
+  --ink:        #1a1a1a;
+  --ink-light:  #4a4a4a;
+  --ink-muted:  #888;
+  --rule:       #e2e2e2;
+  --rule-light: #f0f0f0;
+  --bg:         #fafaf8;
+  --bg-figure:  #f4f4f1;
+  --accent:     #c0392b;
+  --accent-bg:  #fdf2f0;
+  --link:       #2563eb;
+
+  --col-text:   680px;
+  --col-wide:   960px;
+  --col-full:   1200px;
+}
+
+html { font-size: 18px; scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── LAYOUT ─────────────────────────────── */
+.l-body         { max-width: var(--col-text); margin: 0 auto; padding: 0 24px; }
+.l-page         { max-width: var(--col-wide); margin: 0 auto; padding: 0 24px; }
+.l-page-outset  { max-width: var(--col-full); margin: 0 auto; padding: 0 24px; }
+
+/* ── MASTHEAD ────────────────────────────── */
+#masthead {
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#masthead .journal { font-weight: 600; color: var(--ink); letter-spacing: .01em; }
+#masthead .sep { color: var(--rule); }
+
+/* ── HERO ────────────────────────────────── */
+#hero {
+  padding: 72px 24px 52px;
+  max-width: var(--col-text);
+  margin: 0 auto;
+}
+#hero .kicker {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+#hero h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+#hero .subtitle {
+  font-size: 1.15rem;
+  font-weight: 300;
+  color: var(--ink-light);
+  line-height: 1.65;
+  margin-bottom: 40px;
+  max-width: 560px;
+}
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--ink-light);
+  border-top: 1px solid var(--rule);
+  padding-top: 20px;
+}
+.byline .author { font-weight: 500; color: var(--ink); }
+.byline .meta   { color: var(--ink-muted); font-size: 12.5px; margin-top: 4px; }
+
+/* ── ABSTRACT ────────────────────────────── */
+#abstract {
+  background: var(--accent-bg);
+  border-left: 3px solid var(--accent);
+  padding: 24px 28px;
+  margin: 40px 0 56px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--ink-light);
+}
+#abstract strong { color: var(--ink); font-weight: 600; }
+
+/* ── ARTICLE BODY ────────────────────────── */
+article { padding-bottom: 100px; }
+
+h2 {
+  font-family: var(--sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 64px 0 16px;
+  padding-top: 8px;
+  border-top: 2px solid var(--ink);
+}
+h3 {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 36px 0 12px;
+}
+p { margin-bottom: 1.2em; }
+p + p { text-indent: 1.5em; }
+h2 + p, h3 + p, figure + p { text-indent: 0; }
+
+a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+
+/* inline code */
+code {
+  font-family: var(--mono);
+  font-size: .82em;
+  background: var(--rule-light);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: #c0392b;
+}
+
+/* ── FIGURES ─────────────────────────────── */
+figure {
+  margin: 48px 0;
+}
+.figure-full {
+  max-width: var(--col-wide);
+  margin-left: auto; margin-right: auto;
+  padding: 0 24px;
+}
+.figure-outset {
+  max-width: var(--col-full);
+  margin-left: auto; margin-right: auto;
+  padding: 0 24px;
+}
+.figure-inner {
+  background: var(--bg-figure);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+figcaption {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  margin-top: 14px;
+  max-width: var(--col-text);
+}
+figcaption strong { color: var(--ink); font-weight: 600; }
+figcaption .fig-num { color: var(--accent); font-weight: 600; }
+
+/* ── MATH-LIKE BLOCKS ────────────────────── */
+.equation-block {
+  background: var(--rule-light);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 16px 24px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 2;
+  overflow-x: auto;
+  margin: 24px 0;
+  color: var(--ink);
+}
+
+/* ── ARCHITECTURE DIAGRAM ────────────────── */
+.arch-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 32px 24px;
+  flex-wrap: wrap;
+}
+.arch-block {
+  background: #fff;
+  border: 1.5px solid var(--rule);
+  border-radius: 6px;
+  padding: 12px 18px;
+  text-align: center;
+  font-family: var(--sans);
+  min-width: 110px;
+}
+.arch-block .label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px; }
+.arch-block .dim   { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.arch-block.highlight { border-color: var(--accent); background: var(--accent-bg); }
+.arch-arrow {
+  font-size: 18px;
+  color: var(--ink-muted);
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.arch-stack { display: flex; flex-direction: column; gap: 6px; }
+
+/* ── FILTER GRID ─────────────────────────── */
+.filter-grid {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  padding: 28px;
+  flex-wrap: wrap;
+}
+.filter-item { text-align: center; }
+.filter-item .name { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 10px; }
+.filter-kernel {
+  display: grid;
+  grid-template-columns: repeat(3, 36px);
+  gap: 2px;
+  margin: 0 auto 8px;
+  width: fit-content;
+}
+.fk-cell {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  border-radius: 3px;
+}
+
+/* ── NCA INTERACTIVE FIGURE ──────────────── */
+#nca-figure-wrap {
+  padding: 0;
+  position: relative;
+}
+.nca-load-overlay {
+  position: absolute; inset: 0;
+  background: rgba(244,244,241,.96);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; z-index: 20;
+  border-radius: 5px;
+}
+.nca-load-overlay h3 { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--ink); margin: 0; }
+.nca-load-overlay p  { font-family: var(--sans); font-size: 13px; color: var(--ink-muted); text-align: center; max-width: 320px; line-height: 1.6; }
+.prog-bar { width: 260px; height: 3px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--accent); width: 0%; transition: width .25s; border-radius: 3px; }
+.upload-btn-label {
+  display: inline-block;
+  font-family: var(--sans); font-size: 13px;
+  border: 1.5px solid var(--accent); color: var(--accent);
+  border-radius: 4px; padding: 8px 20px; cursor: pointer;
+  transition: all .15s;
+}
+.upload-btn-label:hover { background: var(--accent); color: #fff; }
+.demo-link {
+  font-family: var(--sans); font-size: 12px;
+  color: var(--ink-muted); cursor: pointer;
+  background: none; border: none;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.demo-link:hover { color: var(--ink); }
+
+/* NCA layout */
+.nca-layout {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  min-height: 520px;
+}
+#nca-canvas-el {
+  width: 100%; height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  cursor: crosshair;
+  min-height: 400px;
+}
+.nca-panel {
+  border-left: 1px solid var(--rule);
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--sans);
+}
+.nca-panel-section { display: flex; flex-direction: column; gap: 8px; }
+.nca-panel-label {
+  font-size: 9px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-muted);
+}
+.nca-ctrl-row { display: flex; align-items: center; gap: 8px; }
+.nca-ctrl-row label { font-size: 11px; color: var(--ink-muted); width: 52px; flex-shrink: 0; }
+.nca-ctrl-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.nca-ctrl-row .v { font-size: 11px; font-family: var(--mono); width: 26px; text-align: right; }
+
+.nca-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.nca-btn {
+  font-family: var(--sans); font-size: 11px; font-weight: 500;
+  border: 1.5px solid var(--rule); border-radius: 3px;
+  background: none; cursor: pointer; padding: 6px 4px;
+  color: var(--ink-muted); transition: all .12s; text-align: center;
+}
+.nca-btn:hover { border-color: var(--ink-muted); color: var(--ink); }
+.nca-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.nca-btn.wide { grid-column: 1/-1; }
+
+.gene-grid-panel {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+}
+.gchip {
+  border: 1.5px solid var(--rule); border-radius: 3px;
+  padding: 4px 2px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: border-color .12s;
+}
+.gchip.sel { border-color: currentColor; }
+.gchip-sw { width: 20px; height: 20px; border-radius: 2px; }
+.gchip-bits { font-size: 7.5px; font-family: var(--mono); color: var(--ink-muted); }
+
+.nca-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 8px 14px;
+  background: #fff;
+  font-family: var(--sans);
+  font-size: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.toolbar-group { display: flex; gap: 4px; align-items: center; }
+.toolbar-sep { width: 1px; height: 18px; background: var(--rule); margin: 0 4px; }
+.toolbar-label { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin-right: 4px; }
+.tb-btn {
+  font-family: var(--sans); font-size: 11px;
+  border: 1px solid var(--rule); border-radius: 3px;
+  background: none; cursor: pointer; padding: 4px 10px;
+  color: var(--ink-muted); transition: all .12s;
+}
+.tb-btn:hover { border-color: var(--ink-muted); color: var(--ink); }
+.tb-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+#step-counter { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); margin-left: auto; }
+#fps-counter { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
+.run-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ccc; margin-right: 4px; }
+.run-dot.running { background: #22c55e; }
+#brush-ring {
+  position: absolute; border: 1.5px solid rgba(0,0,0,.4);
+  border-radius: 50%; pointer-events: none;
+  transform: translate(-50%,-50%); display: none;
+}
+
+/* ── FOOTNOTES ───────────────────────────── */
+.footnote-marker {
+  font-family: var(--sans);
+  font-size: 11px; color: var(--accent);
+  vertical-align: super; line-height: 0;
+  cursor: default; font-weight: 600;
+}
+.footnotes {
+  border-top: 1px solid var(--rule);
+  margin-top: 64px; padding-top: 24px;
+  font-size: 14px; color: var(--ink-light);
+  line-height: 1.65;
+}
+.footnote-entry { display: flex; gap: 10px; margin-bottom: 10px; }
+.footnote-entry .fn-num { color: var(--accent); font-weight: 600; font-family: var(--sans); flex-shrink: 0; font-size: 13px; }
+
+/* ── REFERENCES ──────────────────────────── */
+.references {
+  margin-top: 48px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--ink-light);
+}
+.ref-entry {
+  display: flex; gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule-light);
+}
+.ref-num { color: var(--ink-muted); font-size: 11px; flex-shrink: 0; padding-top: 2px; width: 24px; }
+.ref-body { flex: 1; }
+.ref-title { color: var(--ink); font-style: italic; }
+.ref-authors { color: var(--ink-muted); font-size: 12.5px; }
+
+/* ── CITATION ────────────────────────────── */
+#citation-block {
+  background: var(--rule-light);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 20px 24px;
+  margin-top: 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--ink-light);
+  overflow-x: auto;
+}
+
+/* ── FOOTER ──────────────────────────────── */
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0 48px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+
+/* ── TABLE ───────────────────────────────── */
+.data-table {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.data-table th {
+  font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-muted);
+  border-bottom: 2px solid var(--ink); padding: 8px 12px;
+  text-align: left;
+}
+.data-table td { padding: 8px 12px; border-bottom: 1px solid var(--rule); color: var(--ink); }
+.data-table td code { font-size: 11px; }
+.data-table tr:last-child td { border-bottom: none; }
+
+/* ── RESPONSIVE ──────────────────────────── */
+@media (max-width: 700px) {
+  .nca-layout { grid-template-columns: 1fr; }
+  .nca-panel { border-left: none; border-top: 1px solid var(--rule); }
+  .arch-diagram { flex-direction: column; }
+  .arch-arrow { transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<div id="masthead">
+  <div class="l-page" style="display:flex;align-items:center;gap:8px;width:100%">
+    <span class="journal">Research Article</span>
+    <span class="sep">·</span>
+    <span>Neural Cellular Automata</span>
+    <span class="sep">·</span>
+    <span>Interactive</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<div id="hero">
+  <div class="kicker">Neural Cellular Automata</div>
+  <h1>Genotype-Conditioned<br>Self-Organising Textures</h1>
+  <p class="subtitle">
+    A neural cellular automaton whose growth behaviour is governed by a discrete gene vector,
+    enabling multiple co-existing species to emerge from a single shared update rule.
+  </p>
+  <div class="byline">
+    <div>
+      <div class="author">Anonymous Author</div>
+      <div class="meta">Submitted 2025 · Interactive article</div>
+    </div>
+  </div>
+</div>
+
+<article>
+
+<!-- ABSTRACT -->
+<div class="l-body">
+<div id="abstract">
+  <strong>Abstract.</strong>
+  We present <em>Gene NCA</em>, a neural cellular automaton (NCA) augmented with an explicit
+  genotype: a small binary vector appended to each cell's state that remains frozen during the
+  learned update step. The genotype breaks the symmetry of a homogeneous field, allowing
+  cells of different lineages to grow into visually distinct textures despite executing
+  identical local rules. We describe the architecture, the perception mechanism, and
+  the stochastic alive-masking scheme that together enable stable, multi-species co-existence.
+  An interactive WebGL demo embedded in this article allows the reader to paint genotypes
+  onto the canvas and observe emergent growth in real time.
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="l-body">
+<h2>1 · Motivation</h2>
+
+<p>
+  Biological development is a remarkable example of a system where identical local
+  rules—encoded in the genome shared by every cell—give rise to globally coherent,
+  spatially heterogeneous structures. A liver cell and a neuron carry the same DNA; it
+  is the <em>expression state</em> of that DNA, shaped by developmental history and
+  local signalling, that determines cell identity.
+</p>
+<p>
+  Neural Cellular Automata (NCA) <span class="footnote-marker">1</span> offer a
+  differentiable model of this phenomenon: each cell in a grid runs the same learned
+  update rule, communicating only with immediate neighbours through a fixed perception
+  kernel. Trained end-to-end, such systems can grow, maintain, and regenerate target
+  patterns starting from a single seed cell.
+</p>
+<p>
+  A natural extension is to ask: can a <em>single</em> trained network support
+  multiple distinct species simultaneously, distinguishable only by a small internal
+  flag? We explore this idea by appending a fixed binary <em>gene vector</em>
+  <strong>g</strong> ∈ {0,1}<sup>4</sup> to each cell. The gene is readable by the
+  update network as part of the cell's perception, but is never modified by the
+  update step—it functions as an immutable lineage marker.
+</p>
+
+<h2>2 · Model Architecture</h2>
+
+<h3>Cell State</h3>
+<p>
+  Each cell carries a state vector <strong>x</strong> ∈ ℝ<sup>24</sup>. The first
+  three channels are interpreted as RGB colour; channel 3 is an alpha (opacity) value
+  that determines cell liveness; channels 4–19 are latent hidden channels; and channels
+  20–23 form the immutable gene vector <strong>g</strong>.
+</p>
+
+<figure class="l-page">
+  <div class="figure-inner">
+    <div style="padding:28px 24px">
+      <table class="data-table">
+        <thead><tr><th>Channels</th><th>Role</th><th>Updated?</th><th>Dimension</th></tr></thead>
+        <tbody>
+          <tr><td>0–2</td><td>RGB colour</td><td>Yes</td><td>3</td></tr>
+          <tr><td>3</td><td>Alpha (liveness)</td><td>Yes</td><td>1</td></tr>
+          <tr><td>4–19</td><td>Hidden state</td><td>Yes</td><td>16</td></tr>
+          <tr><td>20–23</td><td><strong>Gene vector g</strong></td><td><strong>No</strong></td><td>4</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <figcaption class="l-body"><span class="fig-num">Table 1.</span> Cell state layout. The 24-dimensional state vector is partitioned into mutable update channels and an immutable gene suffix. At each step the network outputs a 20-dimensional delta; the gene channels are concatenated back unchanged.</figcaption>
+</figure>
+
+<h3>Perception</h3>
+<p>
+  Before the learned update rule is applied, each cell aggregates neighbourhood
+  information through three fixed, hand-crafted convolutional filters applied independently
+  to each of the 24 state channels. This yields a perception vector of dimension
+  24 × 4 = 96 (the original state concatenated with three filtered views).
+</p>
+
+<figure class="l-page">
+  <div class="figure-inner">
+    <div class="filter-grid">
+      <!-- Sobel X -->
+      <div class="filter-item">
+        <div class="name">Sobel X</div>
+        <div class="filter-kernel">
+          <div class="fk-cell" style="background:#fde8e8;color:#c0392b">−1</div><div class="fk-cell" style="background:#f5f5f5;color:#888"> 0</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div>
+          <div class="fk-cell" style="background:#fbbfb5;color:#c0392b">−2</div><div class="fk-cell" style="background:#f5f5f5;color:#888"> 0</div><div class="fk-cell" style="background:#bfd6fb;color:#2563eb">+2</div>
+          <div class="fk-cell" style="background:#fde8e8;color:#c0392b">−1</div><div class="fk-cell" style="background:#f5f5f5;color:#888"> 0</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-muted)">∂x gradient</div>
+      </div>
+      <!-- Sobel Y -->
+      <div class="filter-item">
+        <div class="name">Sobel Y</div>
+        <div class="filter-kernel">
+          <div class="fk-cell" style="background:#fde8e8;color:#c0392b">−1</div><div class="fk-cell" style="background:#fbbfb5;color:#c0392b">−2</div><div class="fk-cell" style="background:#fde8e8;color:#c0392b">−1</div>
+          <div class="fk-cell" style="background:#f5f5f5;color:#888"> 0</div><div class="fk-cell" style="background:#f5f5f5;color:#888"> 0</div><div class="fk-cell" style="background:#f5f5f5;color:#888"> 0</div>
+          <div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div><div class="fk-cell" style="background:#bfd6fb;color:#2563eb">+2</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-muted)">∂y gradient</div>
+      </div>
+      <!-- Laplacian -->
+      <div class="filter-item">
+        <div class="name">Laplacian</div>
+        <div class="filter-kernel">
+          <div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div>
+          <div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div><div class="fk-cell" style="background:#8b0000;color:#fff">−8</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div>
+          <div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div><div class="fk-cell" style="background:#e8f0fd;color:#2563eb">+1</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-muted)">∇² curvature</div>
+      </div>
+    </div>
+  </div>
+  <figcaption class="l-body"><span class="fig-num">Figure 1.</span> The three fixed perception filters applied per-channel. Sobel X and Sobel Y extract directional gradients; the Laplacian measures local curvature. Each filter is applied independently to all 24 channels via depthwise convolution with circular (toroidal) padding, yielding 72 filtered values that are concatenated with the raw state to form a 96-dimensional perception vector.</figcaption>
+</figure>
+
+<h3>Update Rule</h3>
+<p>
+  The perception vector feeds a small two-layer network—the "update rule"—parameterised
+  by two 1×1 convolutions. Following the original NCA paper, the final layer is
+  initialised to zero so that the network begins in a <em>do-nothing</em> state.
+</p>
+
+<div class="equation-block">
+  <span style="color:var(--ink-muted)">// Perception</span><br>
+  p = concat( x, sobel_x(x), sobel_y(x), laplacian(x) )   <span style="color:var(--ink-muted)">// ℝ⁹⁶</span><br><br>
+  <span style="color:var(--ink-muted)">// Update rule</span><br>
+  h = ReLU( W₁ · p + b₁ )                                  <span style="color:var(--ink-muted)">// ℝ²⁵⁶</span><br>
+  Δ = W₂ · h                                               <span style="color:var(--ink-muted)">// ℝ²⁰  (no bias, zero-init)</span><br><br>
+  <span style="color:var(--ink-muted)">// Masked residual update</span><br>
+  x[:20] = x[:20] + Δ · mask_stoch · mask_alive<br>
+  x[20:] = g                                               <span style="color:var(--ink-muted)">// gene preserved unchanged</span>
+</div>
+
+<figure class="l-page">
+  <div class="figure-inner">
+    <div class="arch-diagram">
+      <div class="arch-block">
+        <div class="label">Cell state</div>
+        <div class="dim">ℝ²⁴</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-block">
+        <div class="label">Perception</div>
+        <div class="dim">ℝ⁹⁶</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-block highlight">
+        <div class="label">W₁ + ReLU</div>
+        <div class="dim">[256×96]</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-block highlight">
+        <div class="label">W₂ (zero)</div>
+        <div class="dim">[20×256]</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-block">
+        <div class="label">Delta Δ</div>
+        <div class="dim">ℝ²⁰</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-block">
+        <div class="label">x + Δ · masks</div>
+        <div class="dim">ℝ²⁴</div>
+      </div>
+    </div>
+  </div>
+  <figcaption class="l-body"><span class="fig-num">Figure 2.</span> The GeneCA forward pass. The perception step is differentiable but uses fixed filters. The two learned 1×1 convolutions (W₁, W₂) are shared across all cells. The output delta has only 20 dimensions; the four gene channels are appended back without modification.</figcaption>
+</figure>
+
+<h2>3 · Stochastic Cell Updates and Alive Masking</h2>
+<p>
+  Two binary masks gate the update at each step.
+</p>
+<p>
+  <strong>Stochastic update mask.</strong> With probability 0.5, each cell skips its
+  update entirely this step, independently of its neighbours. This asynchrony prevents
+  the automaton from exploiting global phase information and improves robustness to
+  perturbation—a biological parallel to the noisy, asynchronous nature of gene
+  expression.
+</p>
+<p>
+  <strong>Alive mask.</strong> A cell is considered alive if the maximum alpha value
+  in its Moore neighbourhood (a 3×3 patch) exceeds 0.1. Cells that fail this test have
+  their delta zeroed out—they neither receive updates nor propagate state to
+  neighbours. This creates a sharp growth frontier: interior, well-supported cells grow
+  actively; isolated stragglers die.
+</p>
+
+<div class="equation-block">
+  mask_stoch = Bernoulli(0.5)                       <span style="color:var(--ink-muted)">// per cell, per step</span><br>
+  mask_alive = max_pool(α, 3×3) > 0.1              <span style="color:var(--ink-muted)">// α = channel 3</span>
+</div>
+
+<h2>4 · The Gene Vector as Lineage Marker</h2>
+<p>
+  The key innovation of Gene NCA over the original growing NCA is the introduction of
+  the gene suffix. Because every cell executing the update rule reads its own gene
+  channels as part of the 96-dimensional perception vector, the learned weights implicitly
+  partition their behaviour across the 2<sup>4</sup> = 16 possible gene values (minus
+  all-zeros, giving 15 distinct species).
+</p>
+<p>
+  Crucially, the network is trained on all species simultaneously. The gene does not
+  select a separate sub-network; it modulates a single shared computation. This is
+  analogous to a eukaryotic cell: identical machinery, different regulatory inputs.
+</p>
+<p>
+  Because the gene is <em>never overwritten</em> by the update step, it propagates
+  perfectly through cell division (painting). A patch seeded with gene <code>1001</code>
+  will always produce <code>1001</code> cells, regardless of what happens in
+  neighbouring regions.
+</p>
+
+<h2>5 · Interactive Demo</h2>
+<p>
+  The figure below runs Gene NCA live in your browser using WebGL2. The neural network
+  forward pass—including the depthwise perception convolutions and the two matrix
+  multiplications—is implemented as GLSL fragment shaders executing on your GPU.
+  No server round-trips occur after the model weights are loaded.
+</p>
+<p>
+  Load your trained <code>art_4.pth</code> weights file, or press <em>Run demo</em>
+  to initialise with random weights (which will not produce trained behaviour, but
+  demonstrates the simulation pipeline). Then select a gene from the palette and
+  paint onto the canvas.
+</p>
+</div><!-- /l-body -->
+
+<!-- ═══ INTERACTIVE FIGURE ═══ -->
+<figure class="figure-outset" id="fig-interactive">
+  <div class="figure-inner" style="position:relative" id="nca-figure-wrap">
+
+    <!-- Load overlay -->
+    <div class="nca-load-overlay" id="load-overlay">
+      <h3>Gene NCA — Interactive Figure</h3>
+      <p>Load your trained <code>.pth</code> weights file, or run with a random initialisation to explore the simulation.</p>
+      <div class="prog-bar" id="prog-bar" style="display:none"><div class="prog-fill" id="prog-fill"></div></div>
+      <div id="load-msg" style="font-family:var(--sans);font-size:12px;color:var(--ink-muted);display:none"></div>
+      <input type="file" id="weight-file" accept=".pth,.bin" style="display:none">
+      <label for="weight-file" class="upload-btn-label">Load weights (.pth)</label>
+      <button class="demo-link" onclick="loadDemoWeights()">Run with random weights →</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="nca-toolbar">
+      <div class="toolbar-group">
+        <span class="run-dot" id="run-dot"></span>
+        <button class="tb-btn active" id="tb-play" onclick="togglePlay()">▶ Run</button>
+        <button class="tb-btn" onclick="stepOnce()">Step</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">View</span>
+        <button class="tb-btn active" id="tb-genes" onclick="setView('genes')">Genes</button>
+        <button class="tb-btn" id="tb-rgb" onclick="setView('nca')">RGB</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <button class="tb-btn active" id="tb-paint" onclick="setTool('paint')">Paint</button>
+        <button class="tb-btn" id="tb-erase" onclick="setTool('erase')">Erase</button>
+        <button class="tb-btn" onclick="clearCanvas()">Clear</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Brush</span>
+        <input type="range" id="tb-brush" min="3" max="70" value="20" style="width:70px;accent-color:var(--accent)" oninput="brushSize=+this.value;document.getElementById('tb-bsz').textContent=this.value">
+        <span id="tb-bsz" style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);min-width:20px">20</span>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Speed</span>
+        <input type="range" id="tb-speed" min="1" max="8" value="1" style="width:60px;accent-color:var(--accent)" oninput="stepsPerFrame=+this.value;document.getElementById('tb-spd').textContent=this.value">
+        <span id="tb-spd" style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);min-width:16px">1</span>
+      </div>
+      <span id="fps-counter" style="margin-left:auto">-- fps</span>
+      <span id="step-counter">step 0</span>
+    </div>
+
+    <!-- Canvas + side panel -->
+    <div class="nca-layout" style="position:relative">
+      <div style="position:relative;background:#000">
+        <canvas id="nca-canvas-el"></canvas>
+        <div id="brush-ring"></div>
+      </div>
+      <div class="nca-panel">
+        <div class="nca-panel-section">
+          <div class="nca-panel-label">Gene palette</div>
+          <div class="gene-grid-panel" id="gene-grid"></div>
+        </div>
+        <div class="nca-panel-section">
+          <div class="nca-panel-label">Keyboard</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--ink-muted);line-height:2">
+            <kbd style="background:var(--rule-light);border:1px solid var(--rule);border-radius:2px;padding:1px 4px;font-size:10px">Space</kbd> play/pause<br>
+            <kbd style="background:var(--rule-light);border:1px solid var(--rule);border-radius:2px;padding:1px 4px;font-size:10px">S</kbd> single step<br>
+            <kbd style="background:var(--rule-light);border:1px solid var(--rule);border-radius:2px;padding:1px 4px;font-size:10px">E</kbd> toggle eraser<br>
+            <kbd style="background:var(--rule-light);border:1px solid var(--rule);border-radius:2px;padding:1px 4px;font-size:10px">G</kbd> gene/RGB view<br>
+            <kbd style="background:var(--rule-light);border:1px solid var(--rule);border-radius:2px;padding:1px 4px;font-size:10px">↑↓</kbd> change gene<br>
+            <kbd style="background:var(--rule-light);border:1px solid var(--rule);border-radius:2px;padding:1px 4px;font-size:10px">C</kbd> clear<br>
+          </div>
+        </div>
+        <div class="nca-panel-section" id="model-info" style="display:none">
+          <div class="nca-panel-label">Loaded model</div>
+          <div id="model-info-text" style="font-family:var(--mono);font-size:10px;color:var(--ink-muted);line-height:1.9"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <figcaption class="l-body">
+    <span class="fig-num">Figure 3.</span>
+    <strong>Live Gene NCA canvas.</strong>
+    Each coloured region corresponds to a distinct binary gene vector. The simulation
+    runs entirely on your GPU via WebGL2; the full forward pass—perception, W₁ ReLU, W₂
+    delta—is implemented as a GLSL fragment shader over a double-buffered floating-point
+    texture. Load your trained <code>art_4.pth</code> weights file to observe the
+    learned behaviour. All processing is local; no data leaves your browser.
+  </figcaption>
+</figure>
+
+<!-- continue article -->
+<div class="l-body">
+
+<h2>6 · Implementation Notes</h2>
+
+<h3>State texture packing</h3>
+<p>
+  WebGL2 RGBA32F textures store four float channels per texel. To represent the 24-channel
+  cell state we allocate 6 texels per cell. A grid of 128×128 cells is therefore stored
+  in a 768×128 floating-point texture. Two such textures are maintained in a ping-pong
+  buffer arrangement: one is read during the NCA step shader, the other is written, and
+  the roles swap each frame.
+</p>
+
+<h3>Weight layout</h3>
+<p>
+  The W₁ matrix (256×96) and W₂ matrix (20×256) are stored as RGBA32F textures, with
+  groups of four input features packed per texel. The GLSL shader loops over the
+  hidden dimension and accumulates dot products in registers, reading weight texels with
+  <code>texture()</code> calls. On modern GPU hardware this inner loop is partially
+  unrolled by the driver and executes in a handful of microseconds per frame.
+</p>
+
+<h3>Weight loading</h3>
+<p>
+  PyTorch <code>.pth</code> files are ZIP archives containing a pickle stream
+  (<code>data.pkl</code>) and raw tensor buffers (<code>data/N</code>). We implement
+  a minimal ZIP and pickle parser in plain JavaScript, extracting the three relevant
+  tensors by shape—no server-side conversion is needed.
+  Tensors are identified as:
+  W₁ weight at shape [256, 96], W₁ bias at shape [256], and W₂ weight at shape [20, 256].
+</p>
+
+<h2>7 · Results and Observations</h2>
+<p>
+  When trained jointly across all 15 gene values, the network learns to produce markedly
+  different texture statistics per gene while sharing all parameters. Gene combinations
+  that differ in only one bit often produce visually related but distinguishable patterns,
+  suggesting the network has learned a smooth interpolation in gene space rather than
+  15 entirely independent solutions.
+</p>
+<p>
+  At the boundary between two gene regions—painted manually in the interactive demo—
+  neither species colonises the other. The alive mask prevents dead cells from
+  spontaneously activating, and the gene vector prevents existing cells from
+  changing species. This gives boundaries a sharp, stable quality reminiscent of
+  tissue compartment boundaries in developmental biology.
+</p>
+
+<h2>References</h2>
+<div class="references">
+  <div class="ref-entry">
+    <div class="ref-num">[1]</div>
+    <div class="ref-body">
+      <span class="ref-title">Growing Neural Cellular Automata.</span><br>
+      <span class="ref-authors">A. Mordvintsev, E. Randazzo, E. Niklasson, M. Levin. <em>Distill</em>, 2020.
+      doi:10.23915/distill.00023</span>
+    </div>
+  </div>
+  <div class="ref-entry">
+    <div class="ref-num">[2]</div>
+    <div class="ref-body">
+      <span class="ref-title">Self-Organising Textures.</span><br>
+      <span class="ref-authors">E. Randazzo, A. Mordvintsev, E. Niklasson, M. Levin. <em>Distill</em>, 2021.</span>
+    </div>
+  </div>
+  <div class="ref-entry">
+    <div class="ref-num">[3]</div>
+    <div class="ref-body">
+      <span class="ref-title">Self-classifying MNIST Digits.</span><br>
+      <span class="ref-authors">E. Randazzo, A. Mordvintsev, E. Niklasson, M. Levin, S. Greydanus. <em>Distill</em>, 2020.</span>
+    </div>
+  </div>
+  <div class="ref-entry">
+    <div class="ref-num">[4]</div>
+    <div class="ref-body">
+      <span class="ref-title">Deep Learning with Cellular Automata.</span><br>
+      <span class="ref-authors">S. Nichele, M. B. Ose, S. Risi, G. Tufte, 2017.</span>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTNOTES -->
+<div class="footnotes">
+  <div class="footnote-entry">
+    <div class="fn-num">1</div>
+    <div>Mordvintsev et al. introduced the term and the core architecture; our Gene NCA extends their model by appending a frozen gene suffix to each cell's state and training a single network to serve all genotypes simultaneously.</div>
+  </div>
+</div>
+
+<!-- CITATION -->
+<h3 style="margin-top:48px">Citation</h3>
+<div id="citation-block">
+@article{geneneca2025,<br>
+&nbsp;&nbsp;title   = {Genotype-Conditioned Self-Organising Textures},<br>
+&nbsp;&nbsp;year    = {2025},<br>
+&nbsp;&nbsp;journal = {Interactive Article},<br>
+&nbsp;&nbsp;note    = {WebGL2 interactive demo included},<br>
+}
+</div>
+
+</div><!-- /l-body -->
+</article>
+
+<footer>
+  <div class="l-body">
+    Diagrams and text are original work. The interactive NCA simulation runs entirely in-browser via WebGL2.
+    No data is transmitted to any server. Weights files remain on your device.
+    <br>Inspired by the <a href="https://distill.pub/2020/growing-ca/">Growing Neural Cellular Automata</a> article by Mordvintsev et al.
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════
+     WEBGL2 NCA ENGINE
+═══════════════════════════════════════════════════════════════ -->
+<script>
+// ── Constants ──────────────────────────────────────────────────
+const CHANNELS=24,GENE_SIZE=4,HIDDEN=256,OUT_CH=20,PERC_CH=96;
+const GRID_W=128,GRID_H=128,DISP_W=512,DISP_H=512;
+const TEX_COLS=GRID_W*6,TEX_ROWS=GRID_H;
+
+const GENE_COMBOS=[];
+for(let i=1;i<16;i++) GENE_COMBOS.push([(i>>3)&1,(i>>2)&1,(i>>1)&1,i&1]);
+
+// Gene colours (perceptually distinct hues)
+const GENE_HEX=['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c',
+                '#3498db','#9b59b6','#e91e8c','#ff6b9d','#795548',
+                '#8bc34a','#00bcd4','#9c27b0','#ff9800','#5c6bc0'];
+function hexToRgb(h){const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255;return[r,g,b];}
+
+// ── App state ──────────────────────────────────────────────────
+let paused=true,viewMode='genes',tool='paint',brushSize=20,stepsPerFrame=1;
+let geneIndex=0,stepCount=0,isDrawing=false,modelLoaded=false;
+let w1_weight=null,w1_bias=null,w2_weight=null;
+let lastFpsTime=0,frameCount=0;
+
+// ── Canvas & WebGL ─────────────────────────────────────────────
+const canvas=document.getElementById('nca-canvas-el');
+canvas.width=DISP_W; canvas.height=DISP_H;
+// Make canvas fill its container responsively
+canvas.style.width='100%'; canvas.style.height='auto';
+canvas.style.aspectRatio=`${DISP_W}/${DISP_H}`;
+
+const gl=canvas.getContext('webgl2',{antialias:false,preserveDrawingBuffer:false});
+if(gl){
+  gl.getExtension('EXT_color_buffer_float');
+}
+
+const QUAD_VS=`#version 300 es
+in vec2 a_pos;out vec2 v_uv;
+void main(){v_uv=a_pos*.5+.5;gl_Position=vec4(a_pos,0,1);}`;
+
+const NCA_FS=`#version 300 es
+precision highp float;precision highp sampler2D;
+uniform sampler2D u_state,u_w1,u_w1b,u_w2;
+uniform vec2 u_ss;uniform float u_rand,u_ur;
+in vec2 v_uv;out vec4 fragColor;
+float hsh(vec2 p,float s){return fract(sin(dot(p,vec2(127.1,311.7))+s)*43758.5453);}
+float rdCh(int cx,int cy,int ch){
+  int tx=cx*6+ch/4,ty=cy;
+  vec4 p=texture(u_state,(vec2(tx,ty)+.5)/u_ss);
+  int m=ch-ch/4*4;
+  return m==0?p.r:m==1?p.g:m==2?p.b:p.a;
+}
+vec4 rdTx(int cx,int cy,int ti){
+  return texture(u_state,(vec2(cx*6+ti,cy)+.5)/u_ss);
+}
+void main(){
+  ivec2 coord=ivec2(gl_FragCoord.xy);
+  int cx=coord.x/6,ti=coord.x-cx*6,cy=coord.y;
+  if(cx>=${GRID_W}||cy>=${GRID_H}){discard;return;}
+  float cell[24];
+  for(int t=0;t<6;t++){vec4 v=rdTx(cx,cy,t);cell[t*4]=v.r;cell[t*4+1]=v.g;cell[t*4+2]=v.b;cell[t*4+3]=v.a;}
+  float gene[4];for(int i=0;i<4;i++)gene[i]=cell[20+i];
+  float am=0.;
+  for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++)
+    am=max(am,rdCh((cx+dx+${GRID_W})%${GRID_W},(cy+dy+${GRID_H})%${GRID_H},3));
+  bool alive=am>0.1;
+  bool upd=alive&&hsh(vec2(cx,cy),u_rand)<u_ur;
+  if(upd){
+    float dx2[24],dy2[24],lap[24];
+    for(int ch=0;ch<24;ch++){
+      float c00=rdCh((cx-1+${GRID_W})%${GRID_W},(cy-1+${GRID_H})%${GRID_H},ch);
+      float c10=rdCh(cx,(cy-1+${GRID_H})%${GRID_H},ch);
+      float c20=rdCh((cx+1)%${GRID_W},(cy-1+${GRID_H})%${GRID_H},ch);
+      float c01=rdCh((cx-1+${GRID_W})%${GRID_W},cy,ch);
+      float c11=cell[ch];
+      float c21=rdCh((cx+1)%${GRID_W},cy,ch);
+      float c02=rdCh((cx-1+${GRID_W})%${GRID_W},(cy+1)%${GRID_H},ch);
+      float c12=rdCh(cx,(cy+1)%${GRID_H},ch);
+      float c22=rdCh((cx+1)%${GRID_W},(cy+1)%${GRID_H},ch);
+      dx2[ch]=-c00+c20-2.*c01+2.*c21-c02+c22;
+      dy2[ch]=-c00-2.*c10-c20+c02+2.*c12+c22;
+      lap[ch]=c00+c10+c20+c01-8.*c11+c21+c02+c12+c22;
+    }
+    float hid[256];
+    for(int h=0;h<256;h++){
+      int bx=h/4;
+      vec4 bv=texture(u_w1b,(vec2(bx,0)+.5)/vec2(64.,1.));
+      int bm=h-h/4*4;
+      float acc=bm==0?bv.r:bm==1?bv.g:bm==2?bv.b:bv.a;
+      for(int p=0;p<24;p++){
+        vec4 wv=texture(u_w1,(vec2(h,p)+.5)/vec2(256.,24.));
+        int b=p*4;
+        float x0,x1,x2,x3;
+        if(b<24){x0=cell[b];x1=cell[b+1];x2=cell[b+2];x3=cell[b+3];}
+        else if(b<48){x0=dx2[b-24];x1=dx2[b-23];x2=dx2[b-22];x3=dx2[b-21];}
+        else if(b<72){x0=dy2[b-48];x1=dy2[b-47];x2=dy2[b-46];x3=dy2[b-45];}
+        else{x0=lap[b-72];x1=lap[b-71];x2=lap[b-70];x3=lap[b-69];}
+        acc+=wv.r*x0+wv.g*x1+wv.b*x2+wv.a*x3;
+      }
+      hid[h]=max(0.,acc);
+    }
+    float delta[20];
+    for(int o=0;o<20;o++){
+      float acc2=0.;int og=o/4,om=o-o/4*4;
+      for(int h=0;h<256;h++){
+        vec4 wv2=texture(u_w2,(vec2(h,og)+.5)/vec2(256.,5.));
+        float w=om==0?wv2.r:om==1?wv2.g:om==2?wv2.b:wv2.a;
+        acc2+=w*hid[h];
+      }
+      delta[o]=acc2;
+    }
+    for(int i=0;i<20;i++)cell[i]+=delta[i];
+    for(int i=0;i<4;i++)cell[20+i]=gene[i];
+  }
+  int b4=ti*4;
+  fragColor=vec4(cell[b4],cell[b4+1],cell[b4+2],cell[b4+3]);
+}`;
+
+const DISP_GENES_FS=`#version 300 es
+precision highp float;precision highp sampler2D;
+uniform sampler2D u_state;uniform vec2 u_ss;
+in vec2 v_uv;out vec4 fragColor;
+const vec3 COLS[15]=vec3[15](
+  vec3(.91,.3,.24),vec3(.9,.49,.14),vec3(.945,.77,.06),
+  vec3(.18,.8,.44),vec3(.1,.74,.61),vec3(.2,.6,.86),
+  vec3(.61,.35,.71),vec3(.91,.12,.55),vec3(1.,.42,.62),
+  vec3(.47,.33,.28),vec3(.55,.76,.29),vec3(.0,.74,.83),
+  vec3(.61,.16,.71),vec3(1.,.6,.14),vec3(.36,.42,.82)
+);
+void main(){
+  int cx=int(v_uv.x*${GRID_W}.), cy=int(v_uv.y*${GRID_H}.);
+  cx=clamp(cx,0,${GRID_W}-1);cy=clamp(cy,0,${GRID_H}-1);
+  vec4 gv=texture(u_state,(vec2(cx*6+5,cy)+.5)/u_ss);
+  float g0=step(.5,gv.r),g1=step(.5,gv.g),g2=step(.5,gv.b),g3=step(.5,gv.a);
+  float alpha=texture(u_state,(vec2(cx*6,cy)+.5)/u_ss).a;
+  if(alpha<0.05){fragColor=vec4(.95,.95,.93,1.);return;}
+  int idx=int(g0*8.+g1*4.+g2*2.+g3)-1;
+  idx=clamp(idx,0,14);
+  fragColor=vec4(COLS[idx],1.);
+}`;
+
+const DISP_RGB_FS=`#version 300 es
+precision highp float;precision highp sampler2D;
+uniform sampler2D u_state;uniform vec2 u_ss;
+in vec2 v_uv;out vec4 fragColor;
+void main(){
+  int cx=int(v_uv.x*${GRID_W}.),cy=int(v_uv.y*${GRID_H}.);
+  cx=clamp(cx,0,${GRID_W}-1);cy=clamp(cy,0,${GRID_H}-1);
+  vec4 v=texture(u_state,(vec2(cx*6,cy)+.5)/u_ss);
+  if(v.a<0.05){fragColor=vec4(.95,.95,.93,1.);return;}
+  fragColor=vec4(clamp(v.rgb,0.,1.),1.);
+}`;
+
+const PAINT_FS=`#version 300 es
+precision highp float;precision highp sampler2D;
+uniform sampler2D u_state;uniform vec2 u_ss,u_ctr;
+uniform float u_rad;uniform int u_erase;uniform vec4 u_gene;uniform float u_ns;
+in vec2 v_uv;out vec4 fragColor;
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+void main(){
+  ivec2 coord=ivec2(gl_FragCoord.xy);
+  int cx=coord.x/6,ti=coord.x-cx*6,cy=coord.y;
+  vec4 cur=texelFetch(u_state,coord,0);
+  if(length(vec2(float(cx),float(cy))-u_ctr)>u_rad){fragColor=cur;return;}
+  if(u_erase==1){fragColor=vec4(0.);return;}
+  vec4 painted=vec4(0.);
+  if(ti==0) painted=vec4(h21(vec2(cx,cy)+u_ns*7.3),h21(vec2(cx,cy)+u_ns*13.7),h21(vec2(cx,cy)+u_ns*17.1),1.);
+  else if(ti==5) painted=u_gene;
+  fragColor=painted;
+}`;
+
+// ── Shader utils ───────────────────────────────────────────────
+function mkShader(type,src){
+  const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function mkProg(vs,fs){
+  const p=gl.createProgram();
+  gl.attachShader(p,mkShader(gl.VERTEX_SHADER,vs));
+  gl.attachShader(p,mkShader(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+let progNCA,progGenes,progRGB,progPaint;
+function initProgs(){
+  progNCA=mkProg(QUAD_VS,NCA_FS);
+  progGenes=mkProg(QUAD_VS,DISP_GENES_FS);
+  progRGB=mkProg(QUAD_VS,DISP_RGB_FS);
+  progPaint=mkProg(QUAD_VS,PAINT_FS);
+}
+
+// ── Textures ───────────────────────────────────────────────────
+function mkTex(w,h,data){
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,w,h,0,gl.RGBA,gl.FLOAT,data||null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  return t;
+}
+function mkFBO(tex){
+  const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+  return f;
+}
+let texA,texB,fboA,fboB,readTex,writeTex,readFBO,writeFBO;
+let texW1,texW1b,texW2;
+function initTextures(){
+  texA=mkTex(TEX_COLS,TEX_ROWS); texB=mkTex(TEX_COLS,TEX_ROWS);
+  fboA=mkFBO(texA); fboB=mkFBO(texB);
+  readTex=texA;writeTex=texB;readFBO=fboA;writeFBO=fboB;
+}
+
+// ── Quad buffer ────────────────────────────────────────────────
+let quadBuf;
+function initQuad(){
+  quadBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+}
+function bindQuad(prog){
+  gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);
+  const loc=gl.getAttribLocation(prog,'a_pos');
+  gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+}
+
+// ── Weight upload ──────────────────────────────────────────────
+function uploadWeights(){
+  const w1d=new Float32Array(256*24*4);
+  for(let p=0;p<24;p++) for(let h=0;h<256;h++){
+    const db=(p*256+h)*4,sb=h*96+p*4;
+    w1d[db]=w1_weight[sb];w1d[db+1]=w1_weight[sb+1];w1d[db+2]=w1_weight[sb+2];w1d[db+3]=w1_weight[sb+3];
+  }
+  texW1=mkTex(256,24,w1d);
+  const w1b=new Float32Array(64*4);
+  for(let h=0;h<256;h++)w1b[h]=w1_bias[h];
+  texW1b=mkTex(64,1,w1b);
+  const w2d=new Float32Array(256*5*4);
+  for(let og=0;og<5;og++) for(let h=0;h<256;h++){
+    const db=(og*256+h)*4;
+    w2d[db]=w2_weight[(og*4)*256+h];
+    w2d[db+1]=og*4+1<20?w2_weight[(og*4+1)*256+h]:0;
+    w2d[db+2]=og*4+2<20?w2_weight[(og*4+2)*256+h]:0;
+    w2d[db+3]=og*4+3<20?w2_weight[(og*4+3)*256+h]:0;
+  }
+  texW2=mkTex(256,5,w2d);
+}
+
+// ── NCA step ──────────────────────────────────────────────────
+function stepNCA(){
+  gl.useProgram(progNCA);gl.viewport(0,0,TEX_COLS,TEX_ROWS);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,writeFBO);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,readTex);
+  gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,texW1);
+  gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,texW1b);
+  gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,texW2);
+  const u=n=>gl.getUniformLocation(progNCA,n);
+  gl.uniform1i(u('u_state'),0);gl.uniform1i(u('u_w1'),1);gl.uniform1i(u('u_w1b'),2);gl.uniform1i(u('u_w2'),3);
+  gl.uniform2f(u('u_ss'),TEX_COLS,TEX_ROWS);
+  gl.uniform1f(u('u_rand'),Math.random()*9999);gl.uniform1f(u('u_ur'),.5);
+  bindQuad(progNCA);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  [readTex,writeTex]=[writeTex,readTex];[readFBO,writeFBO]=[writeFBO,readFBO];
+  stepCount++;
+}
+
+// ── Display ───────────────────────────────────────────────────
+function display(){
+  const prog=viewMode==='genes'?progGenes:progRGB;
+  gl.useProgram(prog);gl.viewport(0,0,DISP_W,DISP_H);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,readTex);
+  gl.uniform1i(gl.getUniformLocation(prog,'u_state'),0);
+  gl.uniform2f(gl.getUniformLocation(prog,'u_ss'),TEX_COLS,TEX_ROWS);
+  bindQuad(prog);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+}
+
+// ── Paint ─────────────────────────────────────────────────────
+function paintAt(mx,my){
+  const gx=mx/DISP_W*GRID_W;
+  const gy=(1-my/DISP_H)*GRID_H;
+  const gr=brushSize/DISP_W*GRID_W;
+  gl.useProgram(progPaint);gl.viewport(0,0,TEX_COLS,TEX_ROWS);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,writeFBO);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,readTex);
+  const u=n=>gl.getUniformLocation(progPaint,n);
+  gl.uniform1i(u('u_state'),0);
+  gl.uniform2f(u('u_ss'),TEX_COLS,TEX_ROWS);
+  gl.uniform2f(u('u_ctr'),gx,gy);gl.uniform1f(u('u_rad'),gr);
+  gl.uniform1i(u('u_erase'),tool==='erase'?1:0);
+  const c=GENE_COMBOS[geneIndex];
+  gl.uniform4f(u('u_gene'),c[0],c[1],c[2],c[3]);
+  gl.uniform1f(u('u_ns'),Math.random());
+  bindQuad(progPaint);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  [readTex,writeTex]=[writeTex,readTex];[readFBO,writeFBO]=[writeFBO,readFBO];
+}
+
+// ── Loop ──────────────────────────────────────────────────────
+function startLoop(){
+  function loop(ts){
+    frameCount++;
+    if(ts-lastFpsTime>600){
+      const fps=(frameCount*1000/(ts-lastFpsTime)).toFixed(0);
+      document.getElementById('fps-counter').textContent=fps+' fps';
+      frameCount=0;lastFpsTime=ts;
+    }
+    if(!paused) for(let i=0;i<stepsPerFrame;i++) stepNCA();
+    display();
+    document.getElementById('step-counter').textContent='step '+stepCount;
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+// ── UI ────────────────────────────────────────────────────────
+function togglePlay(){
+  paused=!paused;
+  document.getElementById('tb-play').textContent=paused?'▶ Run':'⏸ Pause';
+  document.getElementById('tb-play').classList.toggle('active',!paused);
+  document.getElementById('run-dot').classList.toggle('running',!paused);
+}
+function stepOnce(){if(modelLoaded)stepNCA();}
+function setView(v){
+  viewMode=v;
+  document.getElementById('tb-genes').classList.toggle('active',v==='genes');
+  document.getElementById('tb-rgb').classList.toggle('active',v==='nca');
+}
+function setTool(t){
+  tool=t;
+  document.getElementById('tb-paint').classList.toggle('active',t==='paint');
+  document.getElementById('tb-erase').classList.toggle('active',t==='erase');
+}
+function clearCanvas(){
+  if(!modelLoaded)return;
+  [fboA,fboB].forEach(f=>{gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);});
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);stepCount=0;
+}
+function buildGeneGrid(){
+  const g=document.getElementById('gene-grid');g.innerHTML='';
+  GENE_COMBOS.forEach((combo,i)=>{
+    const hex=GENE_HEX[i];
+    const chip=document.createElement('div');
+    chip.className='gchip'+(i===0?' sel':'');
+    chip.style.color=hex;
+    chip.innerHTML=`<div class="gchip-sw" style="background:${hex}"></div><div class="gchip-bits">${combo.join('')}</div>`;
+    chip.onclick=()=>{geneIndex=i;document.querySelectorAll('.gchip').forEach((c,j)=>c.classList.toggle('sel',j===i));};
+    g.appendChild(chip);
+  });
+}
+
+// ── Canvas mouse/touch ────────────────────────────────────────
+function canvasXY(e){
+  const r=canvas.getBoundingClientRect();
+  const sx=DISP_W/r.width,sy=DISP_H/r.height;
+  return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
+}
+canvas.addEventListener('mousedown',e=>{if(!modelLoaded)return;isDrawing=true;const{x,y}=canvasXY(e);paintAt(x,y);});
+canvas.addEventListener('mousemove',e=>{
+  const{x,y}=canvasXY(e);
+  const r=canvas.getBoundingClientRect();
+  const ring=document.getElementById('brush-ring');
+  const dispRad=brushSize*(r.width/DISP_W);
+  ring.style.display='block';
+  ring.style.left=(e.clientX-r.left)+'px';ring.style.top=(e.clientY-r.top)+'px';
+  ring.style.width=dispRad*2+'px';ring.style.height=dispRad*2+'px';
+  if(isDrawing&&modelLoaded)paintAt(x,y);
+});
+canvas.addEventListener('mouseup',()=>isDrawing=false);
+canvas.addEventListener('mouseleave',()=>{isDrawing=false;document.getElementById('brush-ring').style.display='none';});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(!modelLoaded)return;isDrawing=true;const{x,y}=canvasXY(e.touches[0]);paintAt(x,y);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!isDrawing||!modelLoaded)return;const{x,y}=canvasXY(e.touches[0]);paintAt(x,y);},{passive:false});
+canvas.addEventListener('touchend',()=>isDrawing=false);
+
+// ── Keyboard ──────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  // Only fire if focus is not on an input
+  if(document.activeElement&&document.activeElement.tagName==='INPUT'&&document.activeElement.type!=='range')return;
+  if(!modelLoaded)return;
+  switch(e.key){
+    case ' ':e.preventDefault();togglePlay();break;
+    case 's':case 'S':stepOnce();break;
+    case 'e':case 'E':setTool(tool==='erase'?'paint':'erase');break;
+    case 'c':case 'C':clearCanvas();break;
+    case 'g':case 'G':setView(viewMode==='genes'?'nca':'genes');break;
+    case 'ArrowUp':geneIndex=(geneIndex+1)%15;document.querySelectorAll('.gchip').forEach((c,i)=>c.classList.toggle('sel',i===geneIndex));break;
+    case 'ArrowDown':geneIndex=(geneIndex-1+15)%15;document.querySelectorAll('.gchip').forEach((c,i)=>c.classList.toggle('sel',i===geneIndex));break;
+    case 'ArrowLeft':brushSize=Math.max(3,brushSize-2);document.getElementById('tb-brush').value=brushSize;document.getElementById('tb-bsz').textContent=brushSize;break;
+    case 'ArrowRight':brushSize=Math.min(70,brushSize+2);document.getElementById('tb-brush').value=brushSize;document.getElementById('tb-bsz').textContent=brushSize;break;
+  }
+});
+
+// ── Progress ──────────────────────────────────────────────────
+function setProgress(pct,msg){
+  document.getElementById('prog-bar').style.display='block';
+  document.getElementById('prog-fill').style.width=pct+'%';
+  if(msg){document.getElementById('load-msg').style.display='block';document.getElementById('load-msg').textContent=msg;}
+}
+
+// ── Demo weights ───────────────────────────────────────────────
+function loadDemoWeights(){
+  w1_weight=new Float32Array(256*96);w1_bias=new Float32Array(256);w2_weight=new Float32Array(20*256);
+  const s=Math.sqrt(2/352);
+  for(let i=0;i<w1_weight.length;i++)w1_weight[i]=(Math.random()*2-1)*s;
+  for(let i=0;i<w1_bias.length;i++)w1_bias[i]=.01;
+  finishLoad('Demo mode — random weights');
+}
+
+// ── Finish load ────────────────────────────────────────────────
+function finishLoad(msg){
+  setProgress(90,'Compiling shaders...');
+  if(!gl){alert('WebGL2 not available in your browser.');return;}
+  initQuad();initTextures();initProgs();uploadWeights();
+  setProgress(100,'Ready');
+  buildGeneGrid();
+  document.getElementById('model-info').style.display='block';
+  document.getElementById('model-info-text').innerHTML=
+    `W₁: [256×96]<br>b₁: [256]<br>W₂: [20×256]<br><br>${msg}`;
+  setTimeout(()=>{
+    document.getElementById('load-overlay').style.display='none';
+    modelLoaded=true;startLoop();
+  },300);
+}
+
+// ── ZIP + Pickle parser ────────────────────────────────────────
+async function loadPth(buf){
+  setProgress(10,'Reading ZIP...');
+  const zip=await parseZip(buf);
+  setProgress(30,'Parsing pickle...');
+  const pklBuf=zip['archive/data.pkl']||zip['data.pkl'];
+  if(!pklBuf)throw new Error('No data.pkl found');
+  const tensors=await parsePkl(pklBuf,zip);
+  setProgress(80,'Extracting tensors...');
+  let fw=false,fb=false,f2=false;
+  for(const t of Object.values(tensors)){
+    if(!t.shape)continue;
+    if(!fw&&t.shape[0]===256&&t.shape[1]===96){w1_weight=t.data.slice(0,256*96);fw=true;}
+    else if(!fb&&t.shape.length===1&&t.shape[0]===256){w1_bias=t.data.slice(0,256);fb=true;}
+    else if(!f2&&t.shape[0]===20&&t.shape[1]===256){w2_weight=t.data.slice(0,20*256);f2=true;}
+  }
+  if(!fw||!fb||!f2){
+    const v=Object.values(tensors).filter(t=>t.shape);
+    if(v.length>=3){w1_weight=v[0].data.slice(0,256*96);w1_bias=v[1].data.slice(0,256);w2_weight=v[2].data.slice(0,20*256);}
+    else throw new Error('Could not extract tensors from file');
+  }
+}
+
+async function parseZip(buf){
+  const view=new DataView(buf),u8=new Uint8Array(buf),files={};
+  let eocd=-1;
+  for(let i=buf.byteLength-22;i>=0;i--){if(view.getUint32(i,true)===0x06054b50){eocd=i;break;}}
+  if(eocd<0)throw new Error('Not a ZIP file');
+  const cdOff=view.getUint32(eocd+16,true),cdSz=view.getUint32(eocd+12,true);
+  let pos=cdOff;
+  while(pos<cdOff+cdSz){
+    if(view.getUint32(pos,true)!==0x02014b50)break;
+    const fnLen=view.getUint16(pos+28,true),exLen=view.getUint16(pos+30,true),cLen=view.getUint16(pos+32,true);
+    const method=view.getUint16(pos+10,true),compSz=view.getUint32(pos+20,true),unSz=view.getUint32(pos+24,true);
+    const lhOff=view.getUint32(pos+42,true),fname=new TextDecoder().decode(u8.slice(pos+46,pos+46+fnLen));
+    pos+=46+fnLen+exLen+cLen;
+    const lhEx=view.getUint16(lhOff+28,true),ds=lhOff+30+fnLen+lhEx;
+    const comp=u8.slice(ds,ds+compSz);
+    if(method===0){files[fname]=comp.buffer.slice(comp.byteOffset,comp.byteOffset+comp.byteLength);}
+    else if(method===8){
+      const d=new DecompressionStream('deflate-raw'),w=d.writable.getWriter();
+      w.write(comp);w.close();
+      const cks=[],rd=d.readable.getReader();
+      while(true){const{done,value}=await rd.read();if(done)break;cks.push(value);}
+      const out=new Uint8Array(unSz);let o=0;for(const c of cks){out.set(c,o);o+=c.length;}
+      files[fname]=out.buffer;
+    }
+  }
+  return files;
+}
+
+async function parsePkl(buf,zip){
+  const u8=new Uint8Array(buf);let pos=0;
+  const stack=[],memo={},tensors={};let tid=0;
+  const MARK='__M__';
+  function rl(){let e=pos;while(e<u8.length&&u8[e]!==10)e++;const s=new TextDecoder().decode(u8.slice(pos,e));pos=e+1;return s;}
+  function r1(){return u8[pos++];}
+  function r4(){const v=new DataView(u8.buffer,u8.byteOffset+pos,4).getUint32(0,true);pos+=4;return v;}
+  function rN(n){const s=u8.slice(pos,pos+n);pos+=n;return s;}
+  function dec(b){try{return new TextDecoder('utf-8').decode(b);}catch{return String.fromCharCode(...b);}}
+  function resolveG(mod,nm){
+    if(nm==='FloatStorage'||nm==='storage'||(mod.includes('torch')&&nm.includes('Storage'))){
+      return(...args)=>{
+        const key=args[1];
+        const buf2=zip[`archive/data/${key}`]||zip[`data/${key}`];
+        const data=buf2?new Float32Array(buf2):new Float32Array(0);
+        const id=tid++;tensors['t'+id]={data,shape:null};return{__tid:id,data};
+      };
+    }
+    if(nm==='_rebuild_tensor_v2'||nm==='_rebuild_tensor'){
+      return(...args)=>{
+        const st=args[0],shape=Array.isArray(args[3])?args[3]:(Array.isArray(args[2])?args[2]:[]);
+        if(st&&st.__tid!==undefined)tensors['t'+st.__tid].shape=shape;
+        return st;
+      };
+    }
+    return()=>({});
+  }
+  let run=true;
+  while(run&&pos<u8.length){
+    const op=r1();
+    switch(op){
+      case 0x28:stack.push(MARK);break;
+      case 0x2e:run=false;break;
+      case 0x30:stack.pop();break;
+      case 0x4e:stack.push(null);break;
+      case 0x52:{const args=stack.pop(),fn=stack.pop();stack.push(typeof fn==='function'?fn(...(Array.isArray(args)?args:[args])):{fn,args});break;}
+      case 0x61:{const v=stack.pop(),l=stack[stack.length-1];if(Array.isArray(l))l.push(v);break;}
+      case 0x62:{const st=stack.pop(),obj=stack[stack.length-1];if(obj&&typeof obj==='object'&&!Array.isArray(obj))Object.assign(obj,st);break;}
+      case 0x63:{const m=rl(),n=rl();stack.push(resolveG(m,n));break;}
+      case 0x64:stack.push({});break;
+      case 0x65:{const items=[],mi=stack.lastIndexOf(MARK);while(stack.length>mi+1)items.unshift(stack.pop());stack.pop();const l=stack[stack.length-1];if(Array.isArray(l))l.push(...items);break;}
+      case 0x67:{const k=rl();stack.push(memo[k]);break;}
+      case 0x68:{const k=r1();stack.push(memo[String(k)]);break;}
+      case 0x6a:{const k=r4();stack.push(memo[String(k)]);break;}
+      case 0x6c:stack.push([]);break;
+      case 0x70:{const k=rl();memo[k]=stack[stack.length-1];break;}
+      case 0x71:{const k=r1();memo[String(k)]=stack[stack.length-1];break;}
+      case 0x72:{const k=r4();memo[String(k)]=stack[stack.length-1];break;}
+      case 0x73:{const v=stack.pop(),k=stack.pop(),d=stack[stack.length-1];if(d&&typeof d==='object')d[k]=v;break;}
+      case 0x74:stack.push([]);break;
+      case 0x75:{const mi=stack.lastIndexOf(MARK),items=stack.splice(mi+1);stack.pop();const d=stack[stack.length-1];for(let i=0;i<items.length;i+=2)if(d&&typeof d==='object')d[items[i]]=items[i+1];break;}
+      case 0x56:stack.push(rl());break;
+      case 0x49:{const s=rl();stack.push(s==='01'?true:s==='00'?false:parseInt(s));break;}
+      case 0x46:stack.push(parseFloat(rl()));break;
+      case 0x53:{const s=rl();stack.push(s.replace(/^['"]|['"]$/g,''));break;}
+      case 0x4b:stack.push(r1());break;
+      case 0x4d:stack.push(new DataView(u8.buffer,u8.byteOffset+pos,2).getUint16(0,true));pos+=2;break;
+      case 0x4a:stack.push(new DataView(u8.buffer,u8.byteOffset+pos,4).getInt32(0,true));pos+=4;break;
+      case 0x58:{const n=r4();stack.push(dec(rN(n)));break;}
+      case 0x8c:{const n=r1();stack.push(dec(rN(n)));break;}
+      case 0x80:pos++;break;
+      case 0x85:{const a=stack.pop();stack.push([a]);break;}
+      case 0x86:{const b=stack.pop(),a=stack.pop();stack.push([a,b]);break;}
+      case 0x87:{const c=stack.pop(),b=stack.pop(),a=stack.pop();stack.push([a,b,c]);break;}
+      case 0x88:stack.push(true);break;
+      case 0x89:stack.push(false);break;
+      case 0x8a:{const n=r1();pos+=n;stack.push(0);break;}
+      case 0x92:{const args=stack.pop(),cls=stack.pop();stack.push(typeof cls==='function'?cls(...(Array.isArray(args)?args:[args])):{__class__:cls,args});break;}
+      case 0x93:{const kw=stack.pop(),args=stack.pop(),cls=stack.pop();stack.push({__class__:cls,args,kw});break;}
+      case 0x94:{const k=Object.keys(memo).length;memo[String(k)]=stack[stack.length-1];break;}
+      case 0x95:pos+=8;break;
+      default:break;
+    }
+  }
+  return tensors;
+}
+
+// ── File input ────────────────────────────────────────────────
+document.getElementById('weight-file').addEventListener('change',async e=>{
+  const file=e.target.files[0];if(!file)return;
+  setProgress(5,'Reading file...');document.getElementById('load-msg').style.display='block';
+  try{await loadPth(await file.arrayBuffer());finishLoad('Loaded: '+file.name);}
+  catch(err){document.getElementById('load-msg').textContent='Error: '+err.message;document.getElementById('load-msg').style.color='#c0392b';console.error(err);}
+});
+// Drag & drop onto figure
+document.getElementById('nca-figure-wrap').addEventListener('dragover',e=>e.preventDefault());
+document.getElementById('nca-figure-wrap').addEventListener('drop',async e=>{
+  e.preventDefault();const file=e.dataTransfer.files[0];if(!file)return;
+  setProgress(5,'Reading...');document.getElementById('load-msg').style.display='block';
+  try{await loadPth(await file.arrayBuffer());finishLoad('Loaded: '+file.name);}
+  catch(err){document.getElementById('load-msg').textContent='Error: '+err.message;document.getElementById('load-msg').style.color='#c0392b';}
+});
+</script>
+</body>
+</html>
