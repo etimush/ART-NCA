@@ -18,7 +18,7 @@ noise_freq = 100
 # Load NCA
 with torch.no_grad():
     ca = GeneCA(CHANNELS, 256, gene_size=GENESIZE)
-    ca.load_state_dict(torch.load("Trained_models/art_4.pth"))
+    ca.load_state_dict(torch.load("docs/art.pth"))
     ca.to(DEVICE)
 ca.eval()
 
